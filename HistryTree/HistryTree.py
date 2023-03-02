@@ -133,10 +133,10 @@ class MyActivateHandler(adsk.core.CommandEventHandler):
         global _ui
         palette = _ui.palettes.itemById(_paletteInfo['id'])
 
-        palette.sendInfoToHTML(
-            'test',
-            '10'
-        )
+        # palette.sendInfoToHTML(
+        #     'test',
+        #     '10'
+        # )
 
 
 class ShowPaletteCommandCreatedHandler(adsk.core.CommandCreatedEventHandler):

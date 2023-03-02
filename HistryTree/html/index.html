@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <title>jstree demos</title>
+    <title>histry tree</title>
     <style>
       /* html {
         margin: 0;
@@ -61,89 +61,5 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="./dist/jstree.min.js"></script>
     <script src="index.js"></script>
-    <!-- <script>
-      $(function () {
-        var adskWaiter = setInterval(function () {
-          if (window.adsk) {
-            clearInterval(adskWaiter);
-
-            let ret = adsk.fusionSendData("htmlLoaded", "");
-            let obj = JSON.parse(ret);
-            $("#tree").jstree(true).settings.core.data = obj.data;
-            $("#tree").jstree(true).refresh();
-          }
-        }, 100);
-      });
-
-      $("#tree").jstree({
-        core: {
-          multiple: false,
-          themes: { stripes: true },
-          data: [
-            {
-              text: "Loading...",
-              icon: "fal fa-broadcast-tower",
-            },
-          ],
-        },
-        // plugins: ["search"],
-        plugins: ["search", "contextmenu"],
-        contextmenu: {
-          items: function ($node) {
-            return {
-              open_active: {
-                separator_before: false,
-                separator_after: false,
-                label: "オープン/アクティブ",
-                _disabled: function (data) {},
-                action: function (data) {
-                  var inst = $.jstree.reference(data.reference),
-                    obj = inst.get_node(data.reference);
-                  var args = {
-                    id: obj.id,
-                  };
-                  adsk.fusionSendData("open_active", JSON.stringify(args));
-                },
-              },
-            };
-          },
-        },
-      });
-
-      // // double click
-      // $("#tree").on("dblclick", ".jstree-anchor", function (e) {
-      //   var args = {
-      //     id: $(this).parent().attr("id"),
-      //   };
-      //   adsk.fusionSendData("execScript", JSON.stringify(args));
-      // });
-
-      // // click
-      // $("#tree").on("click", ".jstree-anchor", function (e) {
-      //   var args = {
-      //     id: $(this).parent().attr("id"),
-      //   };
-      //   adsk.fusionSendData("click", JSON.stringify(args));
-      // });
-
-      // mouseover
-      // $("#tree").on("mouseover", ".jstree-anchor", function (e) {
-      //   var args = {
-      //     id: $(this).parent().attr("id"),
-      //   };
-      //   adsk.fusionSendData("mouseover", JSON.stringify(args));
-      // });
-
-      var to = false;
-      $("#search-input").keyup(function () {
-        if (to) {
-          clearTimeout(to);
-        }
-        to = setTimeout(function () {
-          var v = $("#search-input").val();
-          $("#tree").jstree(true).search(v);
-        }, 250);
-      });
-    </script> -->
   </body>
 </html>
