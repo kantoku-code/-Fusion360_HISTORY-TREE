@@ -32,4 +32,4 @@ The following environment is confirmed.
 ---
 
 ## **License**:
-- MIT
+- Apache License 2.0
