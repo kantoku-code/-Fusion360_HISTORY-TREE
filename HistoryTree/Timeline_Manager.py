@@ -3,6 +3,7 @@ import adsk.fusion as fusion
 import adsk.core as core
 # import itertools
 import json
+from .lib.VerticalTimeline import get_feature_image, get_body_image
 
 TEST = False
 TEST_COUNT = 12
@@ -44,7 +45,7 @@ def getBodiesTree() -> dict:
         return {
             'id' : body.entityToken,
             'text' : body.name,
-            # 'icon' : '',
+            'icon' : get_body_image(body),
             'children' : [],
         }
 
@@ -57,7 +58,7 @@ def getBodiesTree() -> dict:
         return {
             'id' : feat.entityToken,
             'text' : feat.name,
-            # 'icon' : '',
+            'icon' : get_feature_image(feat.timelineObject),
             'children' : children,
         }
 
@@ -69,6 +70,7 @@ def getBodiesTree() -> dict:
     backupMarker = timeline.markerPosition
 
     bodiesDict = {}
+    # sketchDict = {}
 
     timeObjs = [timeline.item(idx) for idx in range(timeline.count)]
 
@@ -77,6 +79,8 @@ def getBodiesTree() -> dict:
 
     for timeObj in timeObjs:
         timeObj: fusion.TimelineObject
+
+
 
         feat: fusion.Feature = fusion.Feature.cast(timeObj.entity)
         if not feat:

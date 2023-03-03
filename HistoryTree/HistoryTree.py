@@ -9,17 +9,19 @@ from .Timeline_Manager import getBodiesTree
 handlers = []
 _app: adsk.core.Application = None
 _ui: adsk.core.UserInterface = None
+# C:\Users\<ユーザー名>\AppData\Local\Autodesk\webdeploy\production\<バージョンフォルダ>\Neutron
+# ～Neutron\UI\Base\Resources\Browser\SolidBody
 
 _cmdInfo = {
-    'id': 'KANTOKU_HistryTree',
-    'name': 'HistryTree',
-    'tooltip': 'HistryTree',
+    'id': 'KANTOKU_HistoryTree',
+    'name': 'HistoryTree',
+    'tooltip': 'HistoryTree',
     'resources': ''
 }
 
 _paletteInfo = {
-    'id': 'KANTOKU_HistryTree_Palette',
-    'name': 'Histry Tree',
+    'id': 'KANTOKU_HistoryTree_Palette',
+    'name': 'History Tree',
     'htmlFileURL': '.\html\index.html',
     'isVisible': True,
     'showCloseButton': True,
