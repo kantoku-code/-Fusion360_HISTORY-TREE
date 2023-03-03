@@ -5,6 +5,9 @@ import adsk.core as core
 import json
 from .lib.VerticalTimeline import get_feature_image, get_body_image
 
+# ID重複を避ける為のカウンター
+_sktCount = 0
+
 TEST = False
 TEST_COUNT = 12
 
@@ -80,7 +83,11 @@ def getBodiesTree() -> dict:
     for timeObj in timeObjs:
         timeObj: fusion.TimelineObject
 
-
+        # skt: fusion.Sketch = fusion.Sketch.cast(timeObj.entity)
+        # if skt:
+        #     sktInfo = initFeatureInfo(skt)
+        #     sketchDict.setdefault(sktInfo['id'], sktInfo)
+        #     continue
 
         feat: fusion.Feature = fusion.Feature.cast(timeObj.entity)
         if not feat:
@@ -107,6 +114,11 @@ def getBodiesTree() -> dict:
                 featInfo['children'] = children
                 bodiesDict[info['id']]['children'].append(featInfo)
 
+        if feat.linkedFeatures.count > 0:
+            a=1
+        if feat.classType() == fusion.RibFeature.classType():
+            a=1
+
         else:
             # その他
             featInfo = initFeatureInfo(feat)
@@ -126,6 +138,17 @@ def getBodiesTree() -> dict:
     timeline.markerPosition = backupMarker
 
     return bodiesDict
+
+
+def initSketchInfo(skt: fusion.Sketch) -> dict:
+    global _sktCount
+    _sktCount += 1
+    return {
+        'id' : f'{skt.entityToken}@{_sktCount}',
+        'text' : skt.name,
+        'icon' : get_feature_image(skt.timelineObject),
+        'children' : [],
+    }
 
 
 # 全てのボディ取得
@@ -163,26 +186,6 @@ def is_boolen_operation(
 
     return self.operation in boolenTypes
 
-# def getBodies() -> list:
-#     app: core.Application = core.Application.get()
-#     des: fusion.Design = app.activeProduct
-
-#     bodiesList = [c.bRepBodies for c in des.allComponents]
-#     bodyList = []
-#     for bodies in bodiesList:
-#         bodyList.extend([b for b in bodies])
-
-#     bodyInfos = []
-#     for body in bodyList:
-#         bodyInfos.append(
-#             {
-#                 'id' : body.entityToken,
-#                 'text' : body.name,
-#             }
-#         )
-
-#     return bodyInfos
-
 
 # 'adsk::fusion::RevolveFeature'
 # 'adsk::fusion::ExtrudeFeature'
@@ -193,7 +196,8 @@ def getReferences_Extrude(self):
 
     def getParentEntity(prof):
         if hasattr(prof, 'parentSketch'):
-            return prof.parentSketch.name
+            # return prof.parentSketch.name
+            return initSketchInfo(prof.parentSketch)
         else:
             return
 
@@ -208,8 +212,7 @@ def getReferences_Extrude(self):
     except:
         parent = []
 
-    return parent
-
+    return get_unique_list(parent)
 
 # 'adsk::fusion::LoftFeature'
 def getReferences_Loft(self) -> list:
@@ -231,19 +234,19 @@ def getReferences_Loft(self) -> list:
 
     def getParent(sect) -> str:
         try:
-            return sect.entity.parentSketch.name
+            # return sect.entity.parentSketch.name
+            return initSketchInfo(sect.entity.parentSketch)
         except:
             return None
 
     parent = None
     try:
         sections = getAllReference()
-        refs = removeBlanks([getParent(s) for s in sections])
-        parent = list(set(refs))
+        sparent = removeBlanks([getParent(s) for s in sections])
     except:
         parent = []
 
-    return parent
+    return get_unique_list(parent)
 
 
 # 'adsk::fusion::SweepFeature'
@@ -254,7 +257,8 @@ def getReferences_Sweep(self) -> list:
 
     def getParent(ent) -> str:
         try:
-            return ent.parentSketch.name
+            # return ent.parentSketch.name
+            return initSketchInfo(ent.parentSketch)
         except:
             return None
 
@@ -290,7 +294,7 @@ def getReferences_Sweep(self) -> list:
     # except:
     #     pass
 
-    return list(set(parent))
+    return get_unique_list(parent)
 
 
 # 'adsk::fusion::HoleFeature'
@@ -299,20 +303,29 @@ def getReferences_Hole(self) -> list:
     穴用
     '''
 
-    def getParent(ent) -> str:
+    # def getParent(ent) -> str:
+    #     try:
+    #         # return ent.parentSketch.name
+    #         return initSketchInfo(ent.parentSketch)
+    #     except:
+    #         return None
+    def getParenSketch(ent) -> str:
         try:
-            return ent.parentSketch.name
+            # return ent.parentSketch.name
+            return ent.parentSketch
         except:
             return None
 
     parent = []
     try:
         points: core.ObjectCollection = self.holePositionDefinition.sketchPoints
-        parent.extend([getParent(p) for p in points])
+        skts = get_unique_list([getParenSketch(p) for p in points])
+        parent.extend([initSketchInfo(skt) for skt in skts])
+        # parent.extend([getParent(p) for p in points])
     except:
         pass
 
-    return list(set(parent))
+    return parent
 
 
 # 'adsk::fusion::CombineFeature'
@@ -333,3 +346,9 @@ def removeBlanks(lst: list):
 
 def diff_list_by_entity(lst1: list, lst2: list) -> list:
     return [e for e in lst1 if not e in lst2]
+
+def get_unique_list(lst: list) -> list:
+    uniqueLst = []
+    [uniqueLst.append(x) for x in lst if not x in uniqueLst]
+
+    return uniqueLst
