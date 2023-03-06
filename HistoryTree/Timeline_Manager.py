@@ -6,7 +6,7 @@ import json
 from .lib.VerticalTimeline import get_feature_image, get_body_image
 
 # ID重複を避ける為のカウンター
-_sktCount = 0
+_idCount = 0
 
 TEST = False
 TEST_COUNT = 12
@@ -58,7 +58,10 @@ def getBodiesTree() -> dict:
         else:
             children = []
 
+        # global _idCount
+        # _idCount += 1
         return {
+            # 'id' : f'{feat.entityToken}@{_idCount}',
             'id' : feat.entityToken,
             'text' : feat.name,
             'icon' : get_feature_image(feat.timelineObject),
@@ -82,12 +85,6 @@ def getBodiesTree() -> dict:
 
     for timeObj in timeObjs:
         timeObj: fusion.TimelineObject
-
-        # skt: fusion.Sketch = fusion.Sketch.cast(timeObj.entity)
-        # if skt:
-        #     sktInfo = initFeatureInfo(skt)
-        #     sketchDict.setdefault(sktInfo['id'], sktInfo)
-        #     continue
 
         feat: fusion.Feature = fusion.Feature.cast(timeObj.entity)
         if not feat:
@@ -114,10 +111,10 @@ def getBodiesTree() -> dict:
                 featInfo['children'] = children
                 bodiesDict[info['id']]['children'].append(featInfo)
 
-        if feat.linkedFeatures.count > 0:
-            a=1
-        if feat.classType() == fusion.RibFeature.classType():
-            a=1
+        # if feat.linkedFeatures.count > 0:
+        #     a=1
+        # if feat.classType() == fusion.RibFeature.classType():
+        #     a=1
 
         else:
             # その他
@@ -141,10 +138,10 @@ def getBodiesTree() -> dict:
 
 
 def initSketchInfo(skt: fusion.Sketch) -> dict:
-    global _sktCount
-    _sktCount += 1
+    global _idCount
+    _idCount += 1
     return {
-        'id' : f'{skt.entityToken}@{_sktCount}',
+        'id' : f'{skt.entityToken}@{_idCount}',
         'text' : skt.name,
         'icon' : get_feature_image(skt.timelineObject),
         'children' : [],
@@ -163,6 +160,7 @@ def get_all_bodies() -> list:
     bodyLst = []
     for comp in des.allComponents:
         bodyLst.extend([b for b in comp.bRepBodies])
+        bodyLst.extend([m for m in comp.meshBodies])
 
     return bodyLst
 

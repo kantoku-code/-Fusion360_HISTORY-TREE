@@ -9,8 +9,6 @@ from .Timeline_Manager import getBodiesTree
 handlers = []
 _app: adsk.core.Application = None
 _ui: adsk.core.UserInterface = None
-# C:\Users\<ユーザー名>\AppData\Local\Autodesk\webdeploy\production\<バージョンフォルダ>\Neutron
-# ～Neutron\UI\Base\Resources\Browser\SolidBody
 
 _cmdInfo = {
     'id': 'KANTOKU_HistoryTree',

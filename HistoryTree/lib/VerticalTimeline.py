@@ -234,533 +234,533 @@ def get_image_path(subpath):
         print(f'File does not exist: {path}')
         return None
 
-def find_commands(substring):
-    return [c.id for c in ui.commandDefinitions if substring in c.id.lower()]
+# def find_commands(substring):
+#     return [c.id for c in ui.commandDefinitions if substring in c.id.lower()]
 
-def find_commands_by_resource_folder(folder):
-    commands = []
-    for c in ui.commandDefinitions:
-        try:
-            if folder in c.resourceFolder.lower():
-                commands.append(c.id)
-        except:
-            pass
-    return commands
+# def find_commands_by_resource_folder(folder):
+#     commands = []
+#     for c in ui.commandDefinitions:
+#         try:
+#             if folder in c.resourceFolder.lower():
+#                 commands.append(c.id)
+#         except:
+#             pass
+#     return commands
 
 # ui.commandDefinitions.itemById('').resourceFolder
 # design.rootComponent.allOccurrences[0].component.sketches
 
-def invalidate(send=True, clear=False):
-    global timeline_item_count
-    global timeline_marker_position
-    global html_ready
+# def invalidate(send=True, clear=False):
+#     global timeline_item_count
+#     global timeline_marker_position
+#     global html_ready
 
-    palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
+#     palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
 
-    if not palette or not html_ready:
-        return
+#     if not palette or not html_ready:
+#         return
 
-    message = ""
-    features = []
-    max_parents = 0
-    if not clear:
-        timeline_status, timeline = thomasa88lib.timeline.get_timeline()
-        if timeline_status == TIMELINE_STATUS_OK:
-            timeline_item_count = timeline.count
-            timeline_marker_position = timeline.markerPosition
-            features, max_parents = get_features(timeline)
-        elif timeline_status == TIMELINE_STATUS_PRODUCT_NOT_READY:
-            timeline_item_count = -1
-            timeline_marker_position = -1
-        elif timeline_status == TIMELINE_STATUS_NOT_PARAMETRIC:
-            timeline_item_count = -1
-            timeline_marker_position = -1
-            message = "Design is not parametric"
-        else:
-            print("Unhandled timeline status:", timeline_status)
+#     message = ""
+#     features = []
+#     max_parents = 0
+#     if not clear:
+#         timeline_status, timeline = thomasa88lib.timeline.get_timeline()
+#         if timeline_status == TIMELINE_STATUS_OK:
+#             timeline_item_count = timeline.count
+#             timeline_marker_position = timeline.markerPosition
+#             features, max_parents = get_features(timeline)
+#         elif timeline_status == TIMELINE_STATUS_PRODUCT_NOT_READY:
+#             timeline_item_count = -1
+#             timeline_marker_position = -1
+#         elif timeline_status == TIMELINE_STATUS_NOT_PARAMETRIC:
+#             timeline_item_count = -1
+#             timeline_marker_position = -1
+#             message = "Design is not parametric"
+#         else:
+#             print("Unhandled timeline status:", timeline_status)
 
-    action = 'setTimeline'
-    data = {
-         'features': features,
-         'max-parents': max_parents,
-         'message': message,
-    }
+#     action = 'setTimeline'
+#     data = {
+#          'features': features,
+#          'max-parents': max_parents,
+#          'message': message,
+#     }
 
-    if not send:
-        # Cannot do sendInfoToHTML inside the HTML event handler. We either have to use htmlArgs.returnData or
-        # spawn a thread (does not seem very safe? Can we call into the event loop instead?).
-        html_command = {'action': 'setTimeline', 'data': data}
-        return html_command
-    else:
-        palette.sendInfoToHTML('setTimeline', json.dumps(data))
+#     if not send:
+#         # Cannot do sendInfoToHTML inside the HTML event handler. We either have to use htmlArgs.returnData or
+#         # spawn a thread (does not seem very safe? Can we call into the event loop instead?).
+#         html_command = {'action': 'setTimeline', 'data': data}
+#         return html_command
+#     else:
+#         palette.sendInfoToHTML('setTimeline', json.dumps(data))
 
-class TimelineObjectNode:
-    def __init__(self, obj, id):
-        self.obj = obj
-        self.id = id
-        self.children = []
+# class TimelineObjectNode:
+#     def __init__(self, obj, id):
+#         self.obj = obj
+#         self.id = id
+#         self.children = []
 
-timeline_cache_tree = None
-timeline_cache_map = None
-def get_features(timeline):
-    global timeline_cache_tree, timeline_cache_map
-    flat_timeline = thomasa88lib.timeline.flatten_timeline(timeline)
-    timeline_cache_tree, timeline_cache_map = build_timeline_tree(flat_timeline)
+# timeline_cache_tree = None
+# timeline_cache_map = None
+# def get_features(timeline):
+#     global timeline_cache_tree, timeline_cache_map
+#     flat_timeline = thomasa88lib.timeline.flatten_timeline(timeline)
+#     timeline_cache_tree, timeline_cache_map = build_timeline_tree(flat_timeline)
 
-    component_parent_map = get_component_parent_map()
+#     component_parent_map = get_component_parent_map()
 
-    return get_features_from_node(timeline_cache_tree, component_parent_map)
+#     return get_features_from_node(timeline_cache_tree, component_parent_map)
 
-def get_features_from_node(timeline_tree_node, component_parent_map):
-    features = []
-    max_parents = 0
-    for i, child_node in enumerate(timeline_tree_node.children):
-        obj = child_node.obj
+# def get_features_from_node(timeline_tree_node, component_parent_map):
+#     features = []
+#     max_parents = 0
+#     for i, child_node in enumerate(timeline_tree_node.children):
+#         obj = child_node.obj
 
-        feature = {
-            'id': str(child_node.id),
-            'name': obj.name,
-            'suppressed': obj.isSuppressed,
-            'rolledBack': obj.isRolledBack,
-            }
+#         feature = {
+#             'id': str(child_node.id),
+#             'name': obj.name,
+#             'suppressed': obj.isSuppressed,
+#             'rolledBack': obj.isRolledBack,
+#             }
 
-        # Might there be empty groups?
-        if child_node.children:
-            # Group
-            feature['type'] = 'GROUP'
-            feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/Timeline/GroupFeature')
-            feature['children'], group_max_parents = get_features_from_node(child_node,
-                                                                            component_parent_map)
-            if group_max_parents > max_parents:
-                max_parents = group_max_parents
-        else:
-            # Not group
-            try:
-                entity = obj.entity
-            except RuntimeError as e:
-                entity = None
+#         # Might there be empty groups?
+#         if child_node.children:
+#             # Group
+#             feature['type'] = 'GROUP'
+#             feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/Timeline/GroupFeature')
+#             feature['children'], group_max_parents = get_features_from_node(child_node,
+#                                                                             component_parent_map)
+#             if group_max_parents > max_parents:
+#                 max_parents = group_max_parents
+#         else:
+#             # Not group
+#             try:
+#                 entity = obj.entity
+#             except RuntimeError as e:
+#                 entity = None
             
-            if entity:
-                # feature['type'] = thomasa88lib.utils.short_class(obj.entity)
-                feature['type'] = short_class(obj.entity)
-                feature['image'] = get_feature_image(obj)
-                parents = get_feature_parent_path(component_parent_map,
-                                                  obj)
-                feature['parent-components'] = parents
-                if len(parents) > max_parents:
-                    max_parents = len(parents)
-            else:
-                # Move and Align and more does not allow us to access their entity attribute
-                # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/api-bug-cannot-access-entity-of-quot-move-quot-feature/m-p/9651921
+#             if entity:
+#                 # feature['type'] = thomasa88lib.utils.short_class(obj.entity)
+#                 feature['type'] = short_class(obj.entity)
+#                 feature['image'] = get_feature_image(obj)
+#                 parents = get_feature_parent_path(component_parent_map,
+#                                                   obj)
+#                 feature['parent-components'] = parents
+#                 if len(parents) > max_parents:
+#                     max_parents = len(parents)
+#             else:
+#                 # Move and Align and more does not allow us to access their entity attribute
+#                 # Bug: https://forums.autodesk.com/t5/fusion-360-api-and-scripts/api-bug-cannot-access-entity-of-quot-move-quot-feature/m-p/9651921
 
-                if obj.name.startswith('Derived from '):
-                    feature['type'] = 'InsertDerive'
-                    feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/Derive/CloneWM')
-                else:
-                    feature['type'] = '? (Feature info access prohibited by Fusion 360)'
-                    feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/TSpline/Error')
+#                 if obj.name.startswith('Derived from '):
+#                     feature['type'] = 'InsertDerive'
+#                     feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/Derive/CloneWM')
+#                 else:
+#                     feature['type'] = '? (Feature info access prohibited by Fusion 360)'
+#                     feature['image'] = get_image_path('Fusion/UI/FusionUI/Resources/TSpline/Error')
 
-            if feature['type'] == 'Occurrence':
-                # Fusion uses a space separator for the timeline object name, but sometimes the first part is empty.
-                # Strip the whitespace to make the list cleaner.
-                feature['name'] = feature['name'].lstrip()
-                if thomasa88lib.timeline.get_occurrence_type(obj) != OCCURRENCE_BODIES_COMP:
-                    # Name is a read-only instance variant of the component's name,
-                    # with a prefix on it.
-                    # Let the user modify the component's name instead
-                    feature['edit-name'] = obj.entity.component.name
+#             if feature['type'] == 'Occurrence':
+#                 # Fusion uses a space separator for the timeline object name, but sometimes the first part is empty.
+#                 # Strip the whitespace to make the list cleaner.
+#                 feature['name'] = feature['name'].lstrip()
+#                 if thomasa88lib.timeline.get_occurrence_type(obj) != OCCURRENCE_BODIES_COMP:
+#                     # Name is a read-only instance variant of the component's name,
+#                     # with a prefix on it.
+#                     # Let the user modify the component's name instead
+#                     feature['edit-name'] = obj.entity.component.name
 
-        features.append(feature)
+#         features.append(feature)
 
-    return (features, max_parents)
+#     return (features, max_parents)
 
-def get_feature_parent_path(component_parent_map, obj):
-    design = app.activeProduct
+# def get_feature_parent_path(component_parent_map, obj):
+#     design = app.activeProduct
 
-    feature = obj.entity
-    feature_type = thomasa88lib.utils.short_class(feature)
-    if feature_type == 'Occurrence':
-        if obj.isRolledBack or obj.isSuppressed:
-            # No parent component will be available
-            return []
-        parent_name = component_parent_map[feature.component.name]
-    elif feature_type == 'ConstructionPlane':
-        if (feature.parent.classType() == 'adsk::fusion::Component' and
-            feature.parent != design.rootComponent):
-            parent_name = feature.parent.name
-        else:
-            return []
-    elif not hasattr(feature, 'parentComponent'):
-        if feature_type not in [ 'Snapshot' ]:
-            print("Vertical Timeline: Unhandled missing parent for " + feature.classType())
-        return []
-    elif feature.parentComponent == design.rootComponent:
-        return []
-    else:
-        parent_name = feature.parentComponent.name
+#     feature = obj.entity
+#     feature_type = thomasa88lib.utils.short_class(feature)
+#     if feature_type == 'Occurrence':
+#         if obj.isRolledBack or obj.isSuppressed:
+#             # No parent component will be available
+#             return []
+#         parent_name = component_parent_map[feature.component.name]
+#     elif feature_type == 'ConstructionPlane':
+#         if (feature.parent.classType() == 'adsk::fusion::Component' and
+#             feature.parent != design.rootComponent):
+#             parent_name = feature.parent.name
+#         else:
+#             return []
+#     elif not hasattr(feature, 'parentComponent'):
+#         if feature_type not in [ 'Snapshot' ]:
+#             print("Vertical Timeline: Unhandled missing parent for " + feature.classType())
+#         return []
+#     elif feature.parentComponent == design.rootComponent:
+#         return []
+#     else:
+#         parent_name = feature.parentComponent.name
 
-    path = []
-    while parent_name:
-        path.append(parent_name)
-        # If the parent component was suppressed or rolled back,
-        # we won't find it, so stop in that case (get() will return None).
-        parent_name = component_parent_map.get(parent_name)
+#     path = []
+#     while parent_name:
+#         path.append(parent_name)
+#         # If the parent component was suppressed or rolled back,
+#         # we won't find it, so stop in that case (get() will return None).
+#         parent_name = component_parent_map.get(parent_name)
     
-    path.reverse()
-    return path
+#     path.reverse()
+#     return path
     
     
 
-def build_timeline_tree(flat_timeline):
-    # The timeline tree returned from Fusion depends on the view state of
-    # the GUI timeline control. Objects are grouped/nested only if a group
-    # is collapsed in the GUI. Flatten the timeline to always get the same
-    # result.
+# def build_timeline_tree(flat_timeline):
+#     # The timeline tree returned from Fusion depends on the view state of
+#     # the GUI timeline control. Objects are grouped/nested only if a group
+#     # is collapsed in the GUI. Flatten the timeline to always get the same
+#     # result.
 
-    next_id = 0
-    def next_node_id():
-        nonlocal next_id
-        node_id = next_id
-        next_id += 1
-        return node_id
+#     next_id = 0
+#     def next_node_id():
+#         nonlocal next_id
+#         node_id = next_id
+#         next_id += 1
+#         return node_id
 
-    def new_node(obj):
-        node_id = next_node_id()
-        node = TimelineObjectNode(obj, node_id)
-        id_map[node_id] = node
-        return node
+#     def new_node(obj):
+#         node_id = next_node_id()
+#         node = TimelineObjectNode(obj, node_id)
+#         id_map[node_id] = node
+#         return node
 
-    id_map = {}
-    top_node = new_node(None)
-    in_node = top_node
-    group_nodes = [top_node]
+#     id_map = {}
+#     top_node = new_node(None)
+#     in_node = top_node
+#     group_nodes = [top_node]
 
-    def get_group_node(group_obj):
-        for group_node in group_nodes:
-            if group_node.obj == group_obj:
-                return group_node
-        group_node = new_node(group_obj)
-        group_nodes.append(group_node)
-        parent_node = get_group_node(group_obj.parentGroup)
-        parent_node.children.append(group_node)
-        return group_node
+#     def get_group_node(group_obj):
+#         for group_node in group_nodes:
+#             if group_node.obj == group_obj:
+#                 return group_node
+#         group_node = new_node(group_obj)
+#         group_nodes.append(group_node)
+#         parent_node = get_group_node(group_obj.parentGroup)
+#         parent_node.children.append(group_node)
+#         return group_node
     
-    for obj in flat_timeline:
-        node = new_node(obj)
-        parent_obj = obj.parentGroup
-        if parent_obj != in_node.obj:
-            in_node = get_group_node(parent_obj)
-        in_node.children.append(node)
+#     for obj in flat_timeline:
+#         node = new_node(obj)
+#         parent_obj = obj.parentGroup
+#         if parent_obj != in_node.obj:
+#             in_node = get_group_node(parent_obj)
+#         in_node.children.append(node)
 
-    return top_node, id_map
+#     return top_node, id_map
 
-def get_component_parent_map():
-    design = app.activeProduct
-    component_parent_map = {}
-    parent_map_occurrence(component_parent_map,
-     None,
-     design.rootComponent.occurrences)
+# def get_component_parent_map():
+#     design = app.activeProduct
+#     component_parent_map = {}
+#     parent_map_occurrence(component_parent_map,
+#      None,
+#      design.rootComponent.occurrences)
 
-    return component_parent_map
+#     return component_parent_map
 
-def parent_map_occurrence(component_parent_map, parent_name, occurrences):
-    for occurrence in occurrences:
-        name = occurrence.component.name
-        component_parent_map[name] = parent_name
-        parent_map_occurrence(component_parent_map,
-         name,
-         occurrence.childOccurrences)
+# def parent_map_occurrence(component_parent_map, parent_name, occurrences):
+#     for occurrence in occurrences:
+#         name = occurrence.component.name
+#         component_parent_map[name] = parent_name
+#         parent_map_occurrence(component_parent_map,
+#          name,
+#          occurrence.childOccurrences)
 
-def get_view_drop_down():
-    qat = ui.toolbars.itemById('QAT')
-    file_drop_down = qat.controls.itemById('FileSubMenuCommand')
-    view_drop_down = file_drop_down.controls.itemById('ViewWidgetCommand')
-    return view_drop_down
+# def get_view_drop_down():
+#     qat = ui.toolbars.itemById('QAT')
+#     file_drop_down = qat.controls.itemById('FileSubMenuCommand')
+#     view_drop_down = file_drop_down.controls.itemById('ViewWidgetCommand')
+#     return view_drop_down
 
-def check_timeline():
-    global timeline_item_count
-    global timeline_marker_position
-    global html_ready
-    timeline_status, timeline = thomasa88lib.timeline.get_timeline()
-    if timeline_status == TIMELINE_STATUS_OK:
-        if (timeline.count != timeline_item_count or
-            timeline.markerPosition != timeline_marker_position):
-            invalidate()
-    else:
-        timeline_item_count = -1
-        timeline_marker_position = -1
+# def check_timeline():
+#     global timeline_item_count
+#     global timeline_marker_position
+#     global html_ready
+#     timeline_status, timeline = thomasa88lib.timeline.get_timeline()
+#     if timeline_status == TIMELINE_STATUS_OK:
+#         if (timeline.count != timeline_item_count or
+#             timeline.markerPosition != timeline_marker_position):
+#             invalidate()
+#     else:
+#         timeline_item_count = -1
+#         timeline_marker_position = -1
 
-def run(context):
-    global ui, app
-    debug = False
-    with error_catcher:
-        app = adsk.core.Application.get()
-        ui = app.userInterface
+# def run(context):
+#     global ui, app
+#     debug = False
+#     with error_catcher:
+#         app = adsk.core.Application.get()
+#         ui = app.userInterface
 
-        # Add a command that displays the palette
-        toggle_palette_cmd_def = ui.commandDefinitions.itemById('thomasa88_showVerticalTimeline')
+#         # Add a command that displays the palette
+#         toggle_palette_cmd_def = ui.commandDefinitions.itemById('thomasa88_showVerticalTimeline')
 
-        if not toggle_palette_cmd_def:
-            toggle_palette_cmd_def = ui.commandDefinitions.addButtonDefinition(
-                'thomasa88_showVerticalTimeline',
-                'Toggle Vertical Timeline',
-                'Vertical Timeline\n\n' +
-                'A vertical timeline, that shows feature names. Timeline functionality is limited.',
-                './resources/verticaltimeline')
+#         if not toggle_palette_cmd_def:
+#             toggle_palette_cmd_def = ui.commandDefinitions.addButtonDefinition(
+#                 'thomasa88_showVerticalTimeline',
+#                 'Toggle Vertical Timeline',
+#                 'Vertical Timeline\n\n' +
+#                 'A vertical timeline, that shows feature names. Timeline functionality is limited.',
+#                 './resources/verticaltimeline')
 
-            events_manager.add_handler(toggle_palette_cmd_def.commandCreated,
-                        adsk.core.CommandCreatedEventHandler,
-                        toggle_palette_command_created_handler)
+#             events_manager.add_handler(toggle_palette_cmd_def.commandCreated,
+#                         adsk.core.CommandCreatedEventHandler,
+#                         toggle_palette_command_created_handler)
         
-        # Add the command to the View menu
-        view_drop_down = get_view_drop_down()
+#         # Add the command to the View menu
+#         view_drop_down = get_view_drop_down()
         
-        cntrl = view_drop_down.controls.itemById('thomasa88_showVerticalTimeline')
-        if not cntrl:
-            view_drop_down.controls.addCommand(toggle_palette_cmd_def,
-                                               'SeparatorAfter_DashboardModeCloseCommand', False) 
+#         cntrl = view_drop_down.controls.itemById('thomasa88_showVerticalTimeline')
+#         if not cntrl:
+#             view_drop_down.controls.addCommand(toggle_palette_cmd_def,
+#                                                'SeparatorAfter_DashboardModeCloseCommand', False) 
         
-        events_manager.add_handler(ui.commandTerminated,
-                    adsk.core.ApplicationCommandEventHandler,
-                    command_terminated_handler)
+#         events_manager.add_handler(ui.commandTerminated,
+#                     adsk.core.ApplicationCommandEventHandler,
+#                     command_terminated_handler)
 
-        # Edit command tracing
-        # def f(args):
-        #     print(args.commandId)
-        #     args.isCanceled = True
-        # events_manager.add_handler(ui.commandStarting,
-        #             adsk.core.ApplicationCommandEventHandler,
-        #             f)
+#         # Edit command tracing
+#         # def f(args):
+#         #     print(args.commandId)
+#         #     args.isCanceled = True
+#         # events_manager.add_handler(ui.commandStarting,
+#         #             adsk.core.ApplicationCommandEventHandler,
+#         #             f)
 
-        # Fusion bug: Activated is not called when switching to/from Drawing.
-        # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/api-bug-application-documentactivated-event-do-not-raise/m-p/9020750
-        events_manager.add_handler(app.documentActivated,
-                    adsk.core.DocumentEventHandler,
-                    document_activated_handler)
+#         # Fusion bug: Activated is not called when switching to/from Drawing.
+#         # https://forums.autodesk.com/t5/fusion-360-api-and-scripts/api-bug-application-documentactivated-event-do-not-raise/m-p/9020750
+#         events_manager.add_handler(app.documentActivated,
+#                     adsk.core.DocumentEventHandler,
+#                     document_activated_handler)
 
-        events_manager.add_handler(ui.workspacePreDeactivate,
-                    adsk.core.WorkspaceEventHandler,
-                    workspace_pre_deactivate_handler)
+#         events_manager.add_handler(ui.workspacePreDeactivate,
+#                     adsk.core.WorkspaceEventHandler,
+#                     workspace_pre_deactivate_handler)
 
-        events_manager.add_handler(ui.workspaceActivated,
-                    adsk.core.WorkspaceEventHandler,
-                    workspace_activated_handler)
+#         events_manager.add_handler(ui.workspaceActivated,
+#                     adsk.core.WorkspaceEventHandler,
+#                     workspace_activated_handler)
 
-        print("Running")
+#         print("Running")
 
-        # Show palette when user starts the add-in manually
-        if get_enabled() and app.isStartupComplete:
-            show_palette()
+#         # Show palette when user starts the add-in manually
+#         if get_enabled() and app.isStartupComplete:
+#             show_palette()
 
-def stop(context):
-    with error_catcher:
-        print('Stopping')
+# def stop(context):
+#     with error_catcher:
+#         print('Stopping')
 
-        events_manager.clean_up()
+#         events_manager.clean_up()
 
-        # Delete the palette created by this add-in.
-        palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
-        if palette:
-            palette.deleteMe()
+#         # Delete the palette created by this add-in.
+#         palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
+#         if palette:
+#             palette.deleteMe()
 
-        # Delete controls and associated command definitions created by this add-ins
-        view_drop_down = get_view_drop_down()
-        cntrl = view_drop_down.controls.itemById('thomasa88_showVerticalTimeline')
-        if cntrl:
-            cntrl.deleteMe()
-        cmdDef = ui.commandDefinitions.itemById('thomasa88_showVerticalTimeline')
-        if cmdDef:
-            cmdDef.deleteMe()
+#         # Delete controls and associated command definitions created by this add-ins
+#         view_drop_down = get_view_drop_down()
+#         cntrl = view_drop_down.controls.itemById('thomasa88_showVerticalTimeline')
+#         if cntrl:
+#             cntrl.deleteMe()
+#         cmdDef = ui.commandDefinitions.itemById('thomasa88_showVerticalTimeline')
+#         if cmdDef:
+#             cmdDef.deleteMe()
 
-def toggle_palette_command_execute_handler(args):
-    enable = not get_enabled()
-    set_enabled(enable)
-    if enable:
-        if ui.activeWorkspace.id == 'FusionSolidEnvironment':
-            show_palette()
-        else:
-            ui.messageBox('Vertical Timeline cannot be shown in this workspace. ' +
-                        'It will be shown when you open a Design.')
-    else:
-        hide_palette()
+# def toggle_palette_command_execute_handler(args):
+#     enable = not get_enabled()
+#     set_enabled(enable)
+#     if enable:
+#         if ui.activeWorkspace.id == 'FusionSolidEnvironment':
+#             show_palette()
+#         else:
+#             ui.messageBox('Vertical Timeline cannot be shown in this workspace. ' +
+#                         'It will be shown when you open a Design.')
+#     else:
+#         hide_palette()
 
-def show_palette():
-    global html_ready
+# def show_palette():
+#     global html_ready
 
-    palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
-    if not palette:
-        html_ready = False
+#     palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
+#     if not palette:
+#         html_ready = False
 
-        palette = ui.palettes.add('thomasa88_verticalTimelinePalette', f'Vertical Timeline v{manifest["version"]}',
-                                    'palette.html',
-                                    True, True, True, 250, 500, False)
-        palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateLeft
+#         palette = ui.palettes.add('thomasa88_verticalTimelinePalette', f'Vertical Timeline v{manifest["version"]}',
+#                                     'palette.html',
+#                                     True, True, True, 250, 500, False)
+#         palette.dockingState = adsk.core.PaletteDockingStates.PaletteDockStateLeft
 
-        events_manager.add_handler(palette.incomingFromHTML,
-                                   adsk.core.HTMLEventHandler,
-                                   palette_incoming_from_html_handler)
+#         events_manager.add_handler(palette.incomingFromHTML,
+#                                    adsk.core.HTMLEventHandler,
+#                                    palette_incoming_from_html_handler)
 
-        events_manager.add_handler(palette.closed,
-                                   adsk.core.UserInterfaceGeneralEventHandler,
-                                   palette_closed_handler)        
-    else:
-        invalidate()
-        if not palette.isVisible:
-            palette.isVisible = True
+#         events_manager.add_handler(palette.closed,
+#                                    adsk.core.UserInterfaceGeneralEventHandler,
+#                                    palette_closed_handler)        
+#     else:
+#         invalidate()
+#         if not palette.isVisible:
+#             palette.isVisible = True
 
-def hide_palette():
-    palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
-    if palette:
-        palette.isVisible = False
+# def hide_palette():
+#     palette = ui.palettes.itemById('thomasa88_verticalTimelinePalette')
+#     if palette:
+#         palette.isVisible = False
 
-# Event handler for the commandCreated event.
-def toggle_palette_command_created_handler(args):
-    command = args.command
-    events_manager.add_handler(command.execute,
-                                adsk.core.CommandEventHandler,
-                                toggle_palette_command_execute_handler)
+# # Event handler for the commandCreated event.
+# def toggle_palette_command_created_handler(args):
+#     command = args.command
+#     events_manager.add_handler(command.execute,
+#                                 adsk.core.CommandEventHandler,
+#                                 toggle_palette_command_execute_handler)
 
-# Event handler for the palette close event.
-def palette_closed_handler(args):
-    set_enabled(False)
+# # Event handler for the palette close event.
+# def palette_closed_handler(args):
+#     set_enabled(False)
 
-# Event handler for the palette HTML event.                
-def palette_incoming_from_html_handler(args):
-    global html_ready
-    htmlArgs = adsk.core.HTMLEventArgs.cast(args)
-    action = htmlArgs.action
-    data = json.loads(htmlArgs.data)
-    html_commands = []
-    if action == 'ready':
-        print('HTML ready')
-        html_ready = True
+# # Event handler for the palette HTML event.                
+# def palette_incoming_from_html_handler(args):
+#     global html_ready
+#     htmlArgs = adsk.core.HTMLEventArgs.cast(args)
+#     action = htmlArgs.action
+#     data = json.loads(htmlArgs.data)
+#     html_commands = []
+#     if action == 'ready':
+#         print('HTML ready')
+#         html_ready = True
 
-        # Cannot do sendInfoToHTML inside the event handler. We either have to use htmlArgs.returnData or
-        # spawn a thread (does not seem very safe? Can we call into the event loop instead?).
-        html_commands.append(invalidate(send=False))
-    elif action == 'setFeatureName':
-        node = timeline_cache_map[data['id']]
-        obj = node.obj
-        visible_name = None
-        if data['value'] != '':
-            try:
-                entity = obj.entity
-            except RuntimeError:
-                # Move and Align does not allow us to access their entity attribute
-                entity = None
-            if (not obj.isGroup
-                and entity
-                and entity.classType() == 'adsk::fusion::Occurrence'
-                and thomasa88lib.timeline.get_occurrence_type(obj) != OCCURRENCE_BODIES_COMP):
-                # Bonus of not doing a Command transaction: Undo history actually says from and to name.
-                entity.component.name = data['value']
-                # The shown name will have changed. Invalidate.
-                #html_commands.append(invalidate(send=False))
-            else:
-                obj.name = data['value']
-            visible_name = obj.name.lstrip()
-        html_commands.append(visible_name)
-    elif action == 'selectFeature' or action == 'editFeature':
-        node = timeline_cache_map[data['id']]
-        obj = node.obj
-        ret = True
+#         # Cannot do sendInfoToHTML inside the event handler. We either have to use htmlArgs.returnData or
+#         # spawn a thread (does not seem very safe? Can we call into the event loop instead?).
+#         html_commands.append(invalidate(send=False))
+#     elif action == 'setFeatureName':
+#         node = timeline_cache_map[data['id']]
+#         obj = node.obj
+#         visible_name = None
+#         if data['value'] != '':
+#             try:
+#                 entity = obj.entity
+#             except RuntimeError:
+#                 # Move and Align does not allow us to access their entity attribute
+#                 entity = None
+#             if (not obj.isGroup
+#                 and entity
+#                 and entity.classType() == 'adsk::fusion::Occurrence'
+#                 and thomasa88lib.timeline.get_occurrence_type(obj) != OCCURRENCE_BODIES_COMP):
+#                 # Bonus of not doing a Command transaction: Undo history actually says from and to name.
+#                 entity.component.name = data['value']
+#                 # The shown name will have changed. Invalidate.
+#                 #html_commands.append(invalidate(send=False))
+#             else:
+#                 obj.name = data['value']
+#             visible_name = obj.name.lstrip()
+#         html_commands.append(visible_name)
+#     elif action == 'selectFeature' or action == 'editFeature':
+#         node = timeline_cache_map[data['id']]
+#         obj = node.obj
+#         ret = True
 
-        design: adsk.fusion.Design = app.activeProduct
-        entity = obj.entity
+#         design: adsk.fusion.Design = app.activeProduct
+#         entity = obj.entity
 
-        # Making this in a transactory way so the current selection is not removed
-        # if the entity is not selectable.
-        newSelection = adsk.core.ObjectCollection.create()
+#         # Making this in a transactory way so the current selection is not removed
+#         # if the entity is not selectable.
+#         newSelection = adsk.core.ObjectCollection.create()
 
-        if isinstance(entity, adsk.fusion.Occurrence):
-            associated_component = entity.sourceComponent
-        elif isinstance(entity, adsk.fusion.ConstructionPlane):
-            associated_component = entity.parent
-        else:
-            associated_component = entity.parentComponent
+#         if isinstance(entity, adsk.fusion.Occurrence):
+#             associated_component = entity.sourceComponent
+#         elif isinstance(entity, adsk.fusion.ConstructionPlane):
+#             associated_component = entity.parent
+#         else:
+#             associated_component = entity.parentComponent
 
-        if associated_component == design.rootComponent:
-            # There are no occurrences of root. Just a single instance: root. Can select the entity directly.
-            newSelection.add(entity)
-        else:
-            #Using _all_OccurrencesByComponent to get nested occurrences.
-            in_occurrences = design.rootComponent.allOccurrencesByComponent(associated_component)
-            if hasattr(entity, 'createForAssemblyContext'):
-                for occurrence in in_occurrences:
-                    proxy = entity.createForAssemblyContext(occurrence)
-                    newSelection.add(proxy)
-            elif hasattr(entity, 'bodies'):
-                # Workaround for Feature objects
-                ### TODO: Correctly select Feature objects. E.g. BoxFeature, CylinderFeature, ...
-                ###       so that editing them works.
-                for body in entity.bodies:
-                    for occurrence in in_occurrences:
-                        proxy = body.createForAssemblyContext(occurrence)
-                        newSelection.add(proxy)
+#         if associated_component == design.rootComponent:
+#             # There are no occurrences of root. Just a single instance: root. Can select the entity directly.
+#             newSelection.add(entity)
+#         else:
+#             #Using _all_OccurrencesByComponent to get nested occurrences.
+#             in_occurrences = design.rootComponent.allOccurrencesByComponent(associated_component)
+#             if hasattr(entity, 'createForAssemblyContext'):
+#                 for occurrence in in_occurrences:
+#                     proxy = entity.createForAssemblyContext(occurrence)
+#                     newSelection.add(proxy)
+#             elif hasattr(entity, 'bodies'):
+#                 # Workaround for Feature objects
+#                 ### TODO: Correctly select Feature objects. E.g. BoxFeature, CylinderFeature, ...
+#                 ###       so that editing them works.
+#                 for body in entity.bodies:
+#                     for occurrence in in_occurrences:
+#                         proxy = body.createForAssemblyContext(occurrence)
+#                         newSelection.add(proxy)
 
-        try:
-            ui.activeSelections.all = newSelection
-        except Exception as e:
-            ui.messageBox(f'Failed to select {thomasa88lib.utils.short_class(entity)}: {e}')
-            ret = False
+#         try:
+#             ui.activeSelections.all = newSelection
+#         except Exception as e:
+#             ui.messageBox(f'Failed to select {thomasa88lib.utils.short_class(entity)}: {e}')
+#             ret = False
         
-        if ret and action == 'editFeature':
-            command_id = get_feature_edit_command_id(obj)
-            if command_id:
-                #print("T", ui.terminateActiveCommand())
-                ui.commandDefinitions.itemById(command_id).execute()
-            else:
-                ui.messageBox(f'Editing {thomasa88lib.utils.short_class(entity)} feature is not supported')
-                ret = False
-        html_commands.append(ret)
-    elif action == 'rollToFeature':
-        node = timeline_cache_map[data['id']]
-        obj = node.obj
-        if obj.isGroup and not obj.isCollapsed:
-            # Cannot move to collapsed group.
-            # Move to the last item of the group.
-            obj = obj[-1]
-        elif not obj.isGroup and obj.parentGroup and obj.parentGroup.isCollapsed:
-            # Cannot move to object inside collapsed group.
-            # Move to the group instead.
-            obj = obj.parentGroup
-        html_commands.append(obj.rollTo(False))
-        html_commands.append(invalidate(send=False))
+#         if ret and action == 'editFeature':
+#             command_id = get_feature_edit_command_id(obj)
+#             if command_id:
+#                 #print("T", ui.terminateActiveCommand())
+#                 ui.commandDefinitions.itemById(command_id).execute()
+#             else:
+#                 ui.messageBox(f'Editing {thomasa88lib.utils.short_class(entity)} feature is not supported')
+#                 ret = False
+#         html_commands.append(ret)
+#     elif action == 'rollToFeature':
+#         node = timeline_cache_map[data['id']]
+#         obj = node.obj
+#         if obj.isGroup and not obj.isCollapsed:
+#             # Cannot move to collapsed group.
+#             # Move to the last item of the group.
+#             obj = obj[-1]
+#         elif not obj.isGroup and obj.parentGroup and obj.parentGroup.isCollapsed:
+#             # Cannot move to object inside collapsed group.
+#             # Move to the group instead.
+#             obj = obj.parentGroup
+#         html_commands.append(obj.rollTo(False))
+#         html_commands.append(invalidate(send=False))
 
-    if html_commands:
-        htmlArgs.returnData = json.dumps(html_commands)
+#     if html_commands:
+#         htmlArgs.returnData = json.dumps(html_commands)
 
-def command_terminated_handler(args):
-    eventArgs = adsk.core.ApplicationCommandEventArgs.cast(args)
+# def command_terminated_handler(args):
+#     eventArgs = adsk.core.ApplicationCommandEventArgs.cast(args)
 
-    # As long as we don't update on command create, we only need to listen for command completion
-    # Except Undo, which has a "Cancel" termination reason.
-    if (eventArgs.terminationReason != adsk.core.CommandTerminationReason.CompletedTerminationReason and
-        eventArgs.commandId != 'UndoCommand'):
-        return
+#     # As long as we don't update on command create, we only need to listen for command completion
+#     # Except Undo, which has a "Cancel" termination reason.
+#     if (eventArgs.terminationReason != adsk.core.CommandTerminationReason.CompletedTerminationReason and
+#         eventArgs.commandId != 'UndoCommand'):
+#         return
 
-    # Helper to trace feature images
-    #trace_feature_image(eventArgs)
+#     # Helper to trace feature images
+#     #trace_feature_image(eventArgs)
 
-    # Heavy traffic commands
-    if eventArgs.commandId in ['SelectCommand', 'CommitCommand']:
-        return
+#     # Heavy traffic commands
+#     if eventArgs.commandId in ['SelectCommand', 'CommitCommand']:
+#         return
     
-    invalidate()
+#     invalidate()
 
-def trace_feature_image(command_terminated_event_args):
-    ''' Development function to trace feature images '''
-    _, timeline = thomasa88lib.timeline.get_timeline()
-    feature = None
-    if timeline:
-        try:
-            feature = thomasa88lib.utils.short_class(timeline.item(timeline.count-1).entity)
-        except Exception as e:
-            feature = str(e)
-    folder = command_terminated_event_args.commandDefinition.resourceFolder
-    if folder:
-        folder = folder.replace(thomasa88lib.utils.get_fusion_deploy_folder() + '/', '')
-    print(f"'{feature}': ('{folder}', ''),")
+# def trace_feature_image(command_terminated_event_args):
+#     ''' Development function to trace feature images '''
+#     _, timeline = thomasa88lib.timeline.get_timeline()
+#     feature = None
+#     if timeline:
+#         try:
+#             feature = thomasa88lib.utils.short_class(timeline.item(timeline.count-1).entity)
+#         except Exception as e:
+#             feature = str(e)
+#     folder = command_terminated_event_args.commandDefinition.resourceFolder
+#     if folder:
+#         folder = folder.replace(thomasa88lib.utils.get_fusion_deploy_folder() + '/', '')
+#     print(f"'{feature}': ('{folder}', ''),")
 
 #########################################################################################
 # app.product is not ready at workspaceActivated, but documentActivated does not fire
